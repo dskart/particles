@@ -47,7 +47,12 @@ func (a *App) HandleSSHSession(s ssh.Session, sessLogger *zerolog.Logger, numAct
 	}
 
 	defStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
-	screen, err := tcell.NewTerminfoScreenFromTty(sshTty)
+
+	ti, err := sshTty.GetTerminfo()
+	if err != nil {
+		return fmt.Errorf("failed to get terminfo: %w", err)
+	}
+	screen, err := tcell.NewTerminfoScreenFromTtyTerminfo(sshTty, ti)
 	if err != nil {
 		return fmt.Errorf("failed to create screen: %w", err)
 	}

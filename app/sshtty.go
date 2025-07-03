@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2/terminfo"
 	"github.com/gliderlabs/ssh"
 )
 
@@ -29,6 +30,17 @@ func NewSSHTty(s ssh.Session) (*SSHTty, error) {
 		ptyReq:  ptyReq,
 		stopCh:  make(chan struct{}),
 	}, nil
+}
+
+func (s *SSHTty) GetTerminfo() (*terminfo.Terminfo, error) {
+	if s.ptyReq.Term == "" {
+		return nil, fmt.Errorf("no ptyReq.Term")
+	}
+	ti, err := tcell.LookupTerminfo(s.ptyReq.Term)
+	if err != nil {
+		return nil, nil
+	}
+	return ti, nil
 }
 
 func (s *SSHTty) Start() error {
