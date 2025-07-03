@@ -3,13 +3,13 @@ kind: IngressRouteTCP
 metadata:
   name: {{ include "chart.fullname" . }}
   namespace: {{ .Release.Namespace }}
-    labels:
+  labels:
     {{- include "chart.labels" . | nindent 4 }}
 spec:
   entryPoints:
     - ssh
   routes:
-  - match: HostSNI(`particles.raphaelvanhoffelen.com`)
+  - match: HostSNI(`*`)
     services:
     - name: {{ include "chart.fullname" . }}
       port: {{ .Values.service.port }}
