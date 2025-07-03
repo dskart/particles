@@ -6,6 +6,6 @@ import (
 )
 
 type Config struct {
-	App app.Config `yaml:"App"`
-	API api.Config `yaml:"API"`
+	App app.Config `yaml:"App" env:"APP"`
+	API api.Config `yaml:"API" env:"API"`
 }

@@ -3,7 +3,7 @@ package api
 import "fmt"
 
 type Config struct {
-	MaxNumSessions int `yaml:"MaxNumSessions"`
+	MaxNumSessions int `yaml:"MaxNumSessions" env:"MAX_NUM_SESSIONS"`
 }
 
 func (c *Config) Validate() error {

@@ -14,7 +14,7 @@ type UnmarshalConfigOptions struct {
 
 // UnmarshalConfig populates config with values from environment variables and a yaml file.
 // Look at `UnmarshalConfigFromEnv` for more information on environment unmarshalling.
-func UnmarshalConfig(ctx context.Context, prefix string, config any, opts ...func(*UnmarshalConfigOptions)) error {
+func UnmarshalConfig(ctx context.Context, config any, opts ...func(*UnmarshalConfigOptions)) error {
 	err := UnmarshalConfigFromFile(config, opts...)
 	if err != nil {
 		return err

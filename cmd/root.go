@@ -42,12 +42,12 @@ var rootCmd = &cobra.Command{
 		rootLogger = logger.NewLogger(verbose, serviceName)
 
 		configFilePath, _ := cmd.Flags().GetString("config")
-		cfgOpts := []func(*config.UnmarshalConfigOptions){}
+		cfgOpts := []func(*config.UnmarshalConfigOptions){config.WithPrefix(cfgEnvPrefix)}
 		if configFilePath != "" {
 			cfgOpts = append(cfgOpts, config.WithFilePath(configFilePath))
 		}
 
-		if err := config.UnmarshalConfig(context.Background(), cfgEnvPrefix, &rootConfig, cfgOpts...); err != nil {
+		if err := config.UnmarshalConfig(context.Background(), &rootConfig, cfgOpts...); err != nil {
 			return err
 		}
 
