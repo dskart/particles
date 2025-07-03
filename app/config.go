@@ -1,8 +1,6 @@
 package app
 
-type Config struct {
-	MaxNLogs int `yaml:"MaxNLogs"`
-}
+type Config struct{}
 
 func (c *Config) Validate() error {
 	return nil

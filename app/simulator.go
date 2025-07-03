@@ -1,38 +1,62 @@
 package app
 
 import (
+	"context"
 	"math/rand/v2"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/rs/zerolog"
 )
+
+// Renderer is a minimal interface for rendering content to a screen
+type Renderer interface {
+	SetContent(x, y int, mainc rune, combc []rune, style tcell.Style)
+}
 
 type Particle struct {
 	x, y   float64
 	vx, vy float64
 	life   int
+	color  tcell.Color
 }
 
 type Simulator struct {
 	particles []Particle
+	ogWidth   int
+	ogHeight  int
 	width     int
 	height    int
+	startTime time.Time
 }
 
-func NewSimulator(width, height int) (*Simulator, error) {
+func NewSimulator(width, height int, ctx context.Context, level zerolog.Level) (*Simulator, error) {
 	return &Simulator{
 		particles: make([]Particle, 0),
+		ogWidth:   width,
+		ogHeight:  height,
 		width:     width * 2,  // Each character can hold 2 horizontal pixels
 		height:    height * 2, // Each character can hold 2 vertical pixels
+		startTime: time.Now(),
 	}, nil
 }
 
-func (s *Simulator) AddParticle(x, y float64) {
+func (s *Simulator) ElapsedTime() time.Duration {
+	return time.Since(s.startTime)
+}
+
+func (s *Simulator) Size() (int, int) {
+	return s.ogWidth, s.ogHeight
+}
+
+func (s *Simulator) AddParticle(x, y float64, color tcell.Color) {
 	s.particles = append(s.particles, Particle{
-		x:    x,
-		y:    y,
-		vx:   (rand.Float64() - 0.5) * 20,
-		vy:   (rand.Float64() - 0.5) * 20,
-		life: 100,
+		x:     x,
+		y:     y,
+		vx:    (rand.Float64() - 0.5) * 20,
+		vy:    (rand.Float64() - 0.5) * 20,
+		life:  100,
+		color: color,
 	})
 }
 
@@ -54,13 +78,15 @@ func (s *Simulator) Update() {
 	}
 }
 
-func (s *Simulator) Render(screen tcell.Screen) {
+func (s *Simulator) Render(renderer Renderer) {
 	s.Update()
 
-	// Create a 2D array to track which sub-pixels are set
+	// Create a 2D array to track which sub-pixels are set and their colors
 	pixels := make([][]bool, s.height)
+	colors := make([][]tcell.Color, s.height)
 	for i := range pixels {
 		pixels[i] = make([]bool, s.width)
+		colors[i] = make([]tcell.Color, s.width)
 	}
 
 	// Set pixels for particles
@@ -68,67 +94,50 @@ func (s *Simulator) Render(screen tcell.Screen) {
 		x, y := int(p.x), int(p.y)
 		if x >= 0 && x < s.width && y >= 0 && y < s.height {
 			pixels[y][x] = true
+			colors[y][x] = p.color
 		}
 	}
 
 	// Convert pixel array to Unicode block characters
 	for y := 0; y < s.height; y += 2 {
 		for x := 0; x < s.width; x += 2 {
-			char := getBlockChar(
-				pixels, x, y, s.width, s.height,
+			char, color := getBlockCharWithColor(
+				pixels, colors, x, y, s.width, s.height,
 			)
 			if char != ' ' {
-				screen.SetContent(x/2, y/2, char, nil, tcell.StyleDefault)
+				style := tcell.StyleDefault.Foreground(color)
+				renderer.SetContent(x/2, y/2, char, nil, style)
 			}
 		}
 	}
 }
 
-func (s *Simulator) Render2(screen *Screen) {
-	s.Update()
-
-	// Create a 2D array to track which sub-pixels are set
-	pixels := make([][]bool, s.height)
-	for i := range pixels {
-		pixels[i] = make([]bool, s.width)
-	}
-
-	// Set pixels for particles
-	for _, p := range s.particles {
-		x, y := int(p.x), int(p.y)
-		if x >= 0 && x < s.width && y >= 0 && y < s.height {
-			pixels[y][x] = true
-		}
-	}
-
-	// Convert pixel array to Unicode block characters
-	for y := 0; y < s.height; y += 2 {
-		for x := 0; x < s.width; x += 2 {
-			char := getBlockChar(
-				pixels, x, y, s.width, s.height,
-			)
-			if char != ' ' {
-				screen.SetContent(x/2, y/2, char, "")
-			}
-		}
-	}
-}
-
-func getBlockChar(pixels [][]bool, x, y, width, height int) rune {
+func getBlockCharWithColor(pixels [][]bool, colors [][]tcell.Color, x, y, width, height int) (rune, tcell.Color) {
 	// Unicode block characters for 2x2 pixel representation
 	var mask int
+	var color tcell.Color = tcell.ColorWhite // default color
 
 	if y < height && x < width && pixels[y][x] {
 		mask |= 1
+		color = colors[y][x]
 	}
 	if y < height && x+1 < width && pixels[y][x+1] {
 		mask |= 2
+		if mask == 2 { // first pixel found
+			color = colors[y][x+1]
+		}
 	}
 	if y+1 < height && x < width && pixels[y+1][x] {
 		mask |= 4
+		if mask == 4 { // first pixel found
+			color = colors[y+1][x]
+		}
 	}
 	if y+1 < height && x+1 < width && pixels[y+1][x+1] {
 		mask |= 8
+		if mask == 8 { // first pixel found
+			color = colors[y+1][x+1]
+		}
 	}
 
 	blockChars := []rune{
@@ -150,5 +159,5 @@ func getBlockChar(pixels [][]bool, x, y, width, height int) rune {
 		'█', // 1111
 	}
 
-	return blockChars[mask]
+	return blockChars[mask], color
 }

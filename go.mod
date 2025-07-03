@@ -3,7 +3,6 @@ module github.com/dskart/particles
 go 1.24.2
 
 require (
-	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/rs/zerolog v1.34.0
