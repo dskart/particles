@@ -19,9 +19,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["serve", "--port", "80"]
+          args: ["serve", "--port", "22"]
           ports:
-            - containerPort: 80
+            - containerPort: 22
               protocol: TCP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

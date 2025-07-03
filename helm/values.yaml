@@ -9,9 +9,9 @@ image:
 replicas: 1
 
 service:
-  entrypoint: web
+  entrypoint: ssh
   type: ClusterIP
-  port: 80
+  port: 22
 
 resources:
   limits:
