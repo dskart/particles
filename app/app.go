@@ -78,7 +78,15 @@ func (a *App) HandleSSHSession(s ssh.Session, sessLogger *zerolog.Logger, numAct
 	sim := a.sim
 	simWidth, simHeight := sim.Size()
 
-	clientColor := getRandColor()
+	clientColor, hasColor := GetAvailableColor()
+	if !hasColor {
+		clientColor = getRandColor()
+	}
+	defer func() {
+		if hasColor {
+			ReleaseColor(clientColor)
+		}
+	}()
 
 	ticker := time.NewTicker(50 * time.Millisecond)
 	sessionStartTime := time.Now()
