@@ -57,25 +57,22 @@ export class ParticlesStack extends cdk.Stack {
       securityGroup: ecsSecurityGroup,
     });
 
+    // Task Role
+    const taskRole = new iam.Role(this, "EcsTaskRole", {
+      roleName: "ParticlesTaskRole",
+      assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+    });
+    sshHostKeySecret.grantRead(taskRole);
+
     // Task Definition
     const taskDefinition = new ecs.Ec2TaskDefinition(
       this,
       "ParticlesTaskDefinition",
       {
         networkMode: ecs.NetworkMode.BRIDGE,
+        taskRole: taskRole,
       }
     );
-
-    // Add permissions to read secret
-    if (taskDefinition.taskRole instanceof iam.Role) {
-      taskDefinition.taskRole.addToPolicy(
-        new iam.PolicyStatement({
-          effect: iam.Effect.ALLOW,
-          actions: ["secretsmanager:GetSecretValue"],
-          resources: [sshHostKeySecret.secretArn],
-        })
-      );
-    }
 
     // ECR Repository and Image
     const image = ecs.ContainerImage.fromEcrRepository(
