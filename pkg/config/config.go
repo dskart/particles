@@ -2,6 +2,8 @@ package config
 
 import (
 	"context"
+
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
 type RootConfig any
@@ -10,6 +12,13 @@ type UnmarshalConfigOptions struct {
 	filePath  string
 	seperator string
 	prefix    string
+	smClient  *secretsmanager.Client
+}
+
+func WithSecretManager(smClient *secretsmanager.Client) func(*UnmarshalConfigOptions) {
+	return func(options *UnmarshalConfigOptions) {
+		options.smClient = smClient
+	}
 }
 
 // UnmarshalConfig populates config with values from environment variables and a yaml file.

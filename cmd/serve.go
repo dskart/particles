@@ -5,7 +5,6 @@ import (
 
 	"github.com/dskart/particles/api"
 	"github.com/dskart/particles/app"
-	"github.com/gliderlabs/ssh"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +29,7 @@ var serveCmd = &cobra.Command{
 
 		port, _ := cmd.Flags().GetInt("port")
 		rootLogger.Info().Msgf("serving on port %d", port)
-		return ssh.ListenAndServe(fmt.Sprintf(":%d", port), apiInstance.Handler)
+		apiInstance.Server.Addr = fmt.Sprintf(":%d", port)
+		return apiInstance.Server.ListenAndServe()
 	},
 }

@@ -9,8 +9,11 @@ import (
 	"path/filepath"
 	"syscall"
 
+	awsCfg "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/dskart/particles/pkg/config"
 	"github.com/dskart/particles/pkg/logger"
+
 	"github.com/dskart/particles/pkg/shutdown"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -35,8 +38,8 @@ var rootLogger *zerolog.Logger
 
 var rootCmd = &cobra.Command{
 	Use:           filepath.Base(os.Args[0]),
-	SilenceErrors: false,
-	SilenceUsage:  false,
+	SilenceErrors: true,
+	SilenceUsage:  true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		rootLogger = logger.NewLogger(verbose, serviceName)
@@ -47,6 +50,11 @@ var rootCmd = &cobra.Command{
 			cfgOpts = append(cfgOpts, config.WithFilePath(configFilePath))
 		}
 
+		awsConfig, err := awsCfg.LoadDefaultConfig(context.Background())
+		if err != nil {
+			return err
+		}
+		cfgOpts = append(cfgOpts, config.WithSecretManager(secretsmanager.NewFromConfig(awsConfig)))
 		if err := config.UnmarshalConfig(context.Background(), &rootConfig, cfgOpts...); err != nil {
 			return err
 		}
