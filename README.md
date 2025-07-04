@@ -8,3 +8,4 @@ API:
 
 TODO:
 - pass all app values as config with defaults
+- clean up app loop

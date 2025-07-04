@@ -170,13 +170,14 @@ func (a *App) HandleSSHSession(s ssh.Session, sessLogger *zerolog.Logger, numAct
 
 			// Status info
 			sessElapsedTime := time.Since(sessionStartTime)
-			statusMsg := fmt.Sprintf("Sim Time: %s | Sess Time: %s | Time Left: %s | Color: %s | Users %d/%d",
+			statusMsg := fmt.Sprintf("Sim Time: %s | Sess Time: %s | Time Left: %s | Color: %s | Users %d/%d | Num Particles %d",
 				sim.ElapsedTime().Truncate(time.Second),
 				sessElapsedTime.Truncate(time.Second),
 				time.Until(sessEndTime).Truncate(time.Second),
 				colorName(clientColor),
 				numActiveSessions.Load(),
 				maxNumSession,
+				sim.NumOfParticles(),
 			)
 			if len(statusMsg) <= width {
 				for x, r := range statusMsg {

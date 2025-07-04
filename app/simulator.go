@@ -48,6 +48,10 @@ func (s *Simulator) AddParticle(x, y float64, color tcell.Color) {
 	s.particleBuffer.AddParticle(x, y, color)
 }
 
+func (s *Simulator) NumOfParticles() int {
+	return s.particleBuffer.Length()
+}
+
 func (s *Simulator) Run(ctx context.Context, logger *zerolog.Logger) error {
 	delta := 50 * time.Millisecond
 	ticker := time.NewTicker(delta)
