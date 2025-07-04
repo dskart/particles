@@ -14,25 +14,45 @@ type Renderer interface {
 	SetContent(x, y int, mainc rune, combc []rune, style tcell.Style)
 }
 
+type SimConfig struct {
+	Width   int `yaml:"Width" env:"WIDTH"`
+	Height  int `yaml:"Height" env:"HEIGHT"`
+	Gravity int `yaml:"Gravity" env:"GRAVITY"`
+}
+
+func NewSimConfig() SimConfig {
+	return SimConfig{
+		Width:   80,
+		Height:  25,
+		Gravity: 1,
+	}
+}
+
+func (c *SimConfig) Validate() error {
+	if c.Width < 80 {
+		return fmt.Errorf("width too small %d", c.Width)
+	}
+	if c.Height < 25 {
+		return fmt.Errorf("height too small %d", c.Width)
+	}
+	return nil
+}
+
 type Simulator struct {
+	config         SimConfig
 	particleBuffer *ParticleBuffer
-	simWidth       int
-	simHeight      int
 	width          int
 	height         int
 	startTime      time.Time
-	gravity        float64
 }
 
-func NewSimulator(width, height int, ctx context.Context, level zerolog.Level) (*Simulator, error) {
+func NewSimulator(ctx context.Context, level zerolog.Level, simConfig SimConfig) (*Simulator, error) {
 	return &Simulator{
 		particleBuffer: NewParticleBuffer(),
-		simWidth:       width,
-		simHeight:      height,
-		width:          width * 2,  // Each character can hold 2 horizontal pixels
-		height:         height * 2, // Each character can hold 2 vertical pixels
+		config:         simConfig,
+		width:          simConfig.Width * 2,  // Each character can hold 2 horizontal pixels
+		height:         simConfig.Height * 2, // Each character can hold 2 vertical pixels
 		startTime:      time.Now(),
-		gravity:        1.0,
 	}, nil
 }
 
@@ -41,7 +61,7 @@ func (s *Simulator) ElapsedTime() time.Duration {
 }
 
 func (s *Simulator) Size() (int, int) {
-	return s.simWidth, s.simHeight
+	return s.config.Width, s.config.Height
 }
 
 func (s *Simulator) AddParticle(x, y float64, color tcell.Color) {
@@ -78,7 +98,7 @@ func (s *Simulator) Update(delta time.Duration) error {
 
 		p.x += p.vx * delta.Seconds()
 		p.y += p.vy * delta.Seconds()
-		p.vy += float64(s.gravity) // gravity
+		p.vy += float64(s.config.Gravity)
 		p.life--
 
 		// Remove dead or out-of-bounds particles

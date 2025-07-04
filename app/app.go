@@ -20,10 +20,10 @@ type App struct {
 
 func NewApp(logger *zerolog.Logger, config Config) (*App, error) {
 	if err := config.Validate(); err != nil {
-		logger.Fatal().Err(err).Msg("Invalid config")
+		return nil, err
 	}
 
-	sim, err := NewSimulator(80, 25, context.Background(), logger.GetLevel())
+	sim, err := NewSimulator(context.Background(), logger.GetLevel(), config.SimConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create shared simulator: %w", err)
 	}
@@ -89,7 +89,11 @@ func (a *App) HandleSSHSession(s ssh.Session, sessLogger *zerolog.Logger, numAct
 		}
 	}()
 
-	maxSessTime := 5 * time.Minute
+	maxSessTime, err := time.ParseDuration(a.config.MaxSessTime)
+	if err != nil {
+		return err
+	}
+
 	ok, err := a.showWelcomeMessage(ctx, screen, clientColor, maxSessTime)
 	if err != nil {
 		return err

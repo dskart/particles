@@ -43,6 +43,7 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		rootLogger = logger.NewLogger(verbose, serviceName)
+		rootConfig = NewConfig()
 
 		configFilePath, _ := cmd.Flags().GetString("config")
 		cfgOpts := []func(*config.UnmarshalConfigOptions){config.WithPrefix(cfgEnvPrefix)}
@@ -58,6 +59,8 @@ var rootCmd = &cobra.Command{
 		if err := config.UnmarshalConfig(context.Background(), &rootConfig, cfgOpts...); err != nil {
 			return err
 		}
+
+		rootLogger.Debug().Msgf("Config: %+v", rootConfig)
 
 		// wait forever for sig signal
 		go func() {
