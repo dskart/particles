@@ -39,6 +39,78 @@ func (a *App) Run(ctx context.Context) error {
 
 }
 
+// showWelcomeMessage displays instructions to the user and waits for them to press enter
+func (a *App) showWelcomeMessage(ctx context.Context, screen tcell.Screen, clientColor tcell.Color) (bool, error) {
+	screen.Clear()
+
+	welcomeLines := []string{
+		"Welcome to Particles!",
+		"",
+		"This is a shared particle physics simulation that you can interact with.",
+		"",
+		fmt.Sprintf("Your particle color: %s", colorName(clientColor)),
+		"",
+		"How to play:",
+		"• Click anywhere in the simulation area to add particles",
+		"• Each user gets a unique color for their particles",
+		"• Watch as particles interact with gravity and physics",
+		"• Press Ctrl+C or Escape to exit",
+		"",
+		"Press Enter to start the simulation...",
+	}
+
+	width, height := screen.Size()
+	startY := max(0, (height-len(welcomeLines))/2)
+
+	style := tcell.StyleDefault.Foreground(tcell.ColorWhite)
+	titleStyle := tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true)
+
+	for i, line := range welcomeLines {
+		y := startY + i
+		if y >= height {
+			break
+		}
+
+		x := max(0, (width-len(line))/2)
+
+		lineStyle := style
+		switch i {
+		case 0: // Title line
+			lineStyle = titleStyle
+		case 4: // Color line
+			lineStyle = tcell.StyleDefault.Foreground(clientColor).Bold(true)
+		}
+
+		for j, r := range line {
+			if x+j < width {
+				screen.SetContent(x+j, y, r, nil, lineStyle)
+			}
+		}
+	}
+
+	screen.Show()
+
+	// Wait for user to press Enter
+	for {
+		select {
+		case <-ctx.Done():
+			return false, nil
+		default:
+			if screen.HasPendingEvent() {
+				ev := screen.PollEvent()
+				switch ev := ev.(type) {
+				case *tcell.EventKey:
+					if ev.Key() == tcell.KeyEnter {
+						return true, nil
+					} else if ev.Key() == tcell.KeyCtrlC || ev.Key() == tcell.KeyEscape {
+						return false, nil
+					}
+				}
+			}
+		}
+	}
+}
+
 func (a *App) HandleSSHSession(s ssh.Session, sessLogger *zerolog.Logger, numActiveSessions *atomic.Int32, maxNumSession int) error {
 	ctx := s.Context()
 	sshTty, err := NewSSHTty(s)
@@ -60,6 +132,7 @@ func (a *App) HandleSSHSession(s ssh.Session, sessLogger *zerolog.Logger, numAct
 	if err := screen.Init(); err != nil {
 		return fmt.Errorf("failed to init screen: %w", err)
 	}
+
 	screen.SetStyle(defStyle)
 	screen.EnableMouse()
 	screen.EnablePaste()
@@ -87,6 +160,14 @@ func (a *App) HandleSSHSession(s ssh.Session, sessLogger *zerolog.Logger, numAct
 			ReleaseColor(clientColor)
 		}
 	}()
+
+	// Show welcome message using screen
+	ok, err := a.showWelcomeMessage(ctx, screen, clientColor)
+	if err != nil {
+		return err
+	} else if !ok {
+		return nil
+	}
 
 	ticker := time.NewTicker(50 * time.Millisecond)
 	sessionStartTime := time.Now()
