@@ -20,3 +20,4 @@ docker buildx build --platform linux/amd64,linux/arm64 -t $REPO_URI:latest -t $R
 
 cd aws
 cdk deploy ParticlesStack --parameters ImageTag=$GIT_COMMIT
+echo "$GIT_COMMIT Deployed!"

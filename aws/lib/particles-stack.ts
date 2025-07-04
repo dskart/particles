@@ -97,6 +97,7 @@ export class ParticlesStack extends cdk.Stack {
         streamPrefix: "particles",
       }),
       environment: {
+        AWS_DEFAULT_REGION: cdk.Aws.REGION,
         PARTICLES__API__SSH_HOST_KEY: "sm:" + params.secretName.valueAsString,
       },
     });
@@ -169,11 +170,6 @@ export class ParticlesStack extends cdk.Stack {
     new cdk.CfnOutput(this, "SSHCommand", {
       value: `ssh ${nlb.loadBalancerDnsName}`,
       description: "Command to connect to the particle simulation",
-    });
-
-    new cdk.CfnOutput(this, "SshHostKeySecret", {
-      value: sshHostKeySecret.secretName,
-      description: "Secrets Manager secret name for SSH host key",
     });
   }
 }
