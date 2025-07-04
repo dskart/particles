@@ -9,11 +9,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Renderer is a minimal interface for rendering content to a screen
-type Renderer interface {
-	SetContent(x, y int, mainc rune, combc []rune, style tcell.Style)
-}
-
 type SimConfig struct {
 	Width   int `yaml:"Width" env:"WIDTH"`
 	Height  int `yaml:"Height" env:"HEIGHT"`

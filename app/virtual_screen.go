@@ -24,17 +24,3 @@ func (vs *VirtualScreen) SetContent(x, y int, mainc rune, combc []rune, style tc
 		}
 	}
 }
-
-// Size implements app.Renderer.Size - returns the virtual screen size (simulation area size)
-func (vs *VirtualScreen) Size() (int, int) {
-	return vs.maxWidth, vs.maxHeight
-}
-
-// Clear implements app.Renderer.Clear - clears the virtual screen area
-func (vs *VirtualScreen) Clear() {
-	for y := 0; y < vs.maxHeight; y++ {
-		for x := 0; x < vs.maxWidth; x++ {
-			vs.SetContent(x, y, ' ', nil, tcell.StyleDefault)
-		}
-	}
-}
