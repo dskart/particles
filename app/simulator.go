@@ -2,7 +2,7 @@ package app
 
 import (
 	"context"
-	"math/rand/v2"
+	"fmt"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -14,30 +14,25 @@ type Renderer interface {
 	SetContent(x, y int, mainc rune, combc []rune, style tcell.Style)
 }
 
-type Particle struct {
-	x, y   float64
-	vx, vy float64
-	life   int
-	color  tcell.Color
-}
-
 type Simulator struct {
-	particles []Particle
-	ogWidth   int
-	ogHeight  int
-	width     int
-	height    int
-	startTime time.Time
+	particleBuffer *ParticleBuffer
+	simWidth       int
+	simHeight      int
+	width          int
+	height         int
+	startTime      time.Time
+	gravity        float64
 }
 
 func NewSimulator(width, height int, ctx context.Context, level zerolog.Level) (*Simulator, error) {
 	return &Simulator{
-		particles: make([]Particle, 0),
-		ogWidth:   width,
-		ogHeight:  height,
-		width:     width * 2,  // Each character can hold 2 horizontal pixels
-		height:    height * 2, // Each character can hold 2 vertical pixels
-		startTime: time.Now(),
+		particleBuffer: NewParticleBuffer(),
+		simWidth:       width,
+		simHeight:      height,
+		width:          width * 2,  // Each character can hold 2 horizontal pixels
+		height:         height * 2, // Each character can hold 2 vertical pixels
+		startTime:      time.Now(),
+		gravity:        1.0,
 	}, nil
 }
 
@@ -46,41 +41,58 @@ func (s *Simulator) ElapsedTime() time.Duration {
 }
 
 func (s *Simulator) Size() (int, int) {
-	return s.ogWidth, s.ogHeight
+	return s.simWidth, s.simHeight
 }
 
 func (s *Simulator) AddParticle(x, y float64, color tcell.Color) {
-	s.particles = append(s.particles, Particle{
-		x:     x,
-		y:     y,
-		vx:    (rand.Float64() - 0.5) * 20,
-		vy:    (rand.Float64() - 0.5) * 20,
-		life:  100,
-		color: color,
-	})
+	s.particleBuffer.AddParticle(x, y, color)
 }
 
-func (s *Simulator) Update() {
-	// Update particles
-	for i := len(s.particles) - 1; i >= 0; i-- {
-		p := &s.particles[i]
+func (s *Simulator) Run(ctx context.Context, logger *zerolog.Logger) error {
+	delta := 50 * time.Millisecond
+	ticker := time.NewTicker(delta)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			logger.Debug().TimeDiff("simTime", time.Now(), s.startTime).Msg("Sim Loop")
+			if err := s.Update(delta); err != nil {
+				return fmt.Errorf("could not Update: %w", err)
+			}
+		}
+	}
 
-		p.x += p.vx * 0.1
-		p.y += p.vy * 0.1
-		p.vy += 0.5 // gravity
+}
+
+func (s *Simulator) Update(delta time.Duration) error {
+	numParticles := s.particleBuffer.Length()
+	// Going backwards so that even if new particles are added we don't break
+	for i := numParticles - 1; i >= 0; i-- {
+		p := s.particleBuffer.GetParticle(i)
+
+		p.x += p.vx * delta.Seconds()
+		p.y += p.vy * delta.Seconds()
+		p.vy += float64(s.gravity) // gravity
 		p.life--
 
 		// Remove dead or out-of-bounds particles
 		if p.life <= 0 || p.x < 0 || p.x >= float64(s.width) ||
 			p.y < 0 || p.y >= float64(s.height) {
-			s.particles = append(s.particles[:i], s.particles[i+1:]...)
+			if err := s.particleBuffer.RemoveParticle(i); err != nil {
+				return fmt.Errorf("could not remove particle %d: %w", i, err)
+			}
+		} else {
+			if err := s.particleBuffer.UpdateParticle(i, p); err != nil {
+				return fmt.Errorf("could not update particle %d: %w", i, err)
+			}
 		}
 	}
+	return nil
 }
 
 func (s *Simulator) Render(renderer Renderer) {
-	s.Update()
-
 	// Create a 2D array to track which sub-pixels are set and their colors
 	pixels := make([][]bool, s.height)
 	colors := make([][]tcell.Color, s.height)
@@ -90,7 +102,8 @@ func (s *Simulator) Render(renderer Renderer) {
 	}
 
 	// Set pixels for particles
-	for _, p := range s.particles {
+	particles := s.particleBuffer.GetAllParticles()
+	for _, p := range particles {
 		x, y := int(p.x), int(p.y)
 		if x >= 0 && x < s.width && y >= 0 && y < s.height {
 			pixels[y][x] = true
