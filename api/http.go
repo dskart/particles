@@ -1,11 +1,19 @@
 package api
 
 import (
+	"embed"
 	"fmt"
+	"html/template"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
+
+//go:embed templates/index.html
+var templatesFS embed.FS
+
+var indexTmpl = template.Must(template.ParseFS(templatesFS, "templates/index.html"))
 
 var upgrader = websocket.Upgrader{
 	// Clients are SSH ProxyCommands (e.g. websocat), not browsers.
@@ -35,15 +43,30 @@ func NewHTTPHandler(a *API) http.Handler {
 	})
 
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		scheme := "wss"
-		if r.TLS == nil && r.Header.Get("X-Forwarded-Proto") != "https" && r.Header.Get("Cf-Visitor") == "" {
-			scheme = "ws"
+		wsURL := sshWebSocketURL(r, a.Config.PublicHost)
+		if !strings.Contains(r.Header.Get("Accept"), "text/html") {
+			// curl and other non-browser clients get the command as plain text.
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			_, _ = fmt.Fprintf(w, "ssh -o ProxyCommand=\"websocat --binary %s\" particles\n", wsURL)
+			return
 		}
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = fmt.Fprintf(w, "Particles: a shared particle simulation over SSH.\n\n"+
-			"Connect with websocat (https://github.com/vi/websocat):\n\n"+
-			"  ssh -o ProxyCommand=\"websocat --binary %s://%s/ssh\" particles\n", scheme, r.Host)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := indexTmpl.Execute(w, struct{ WSURL string }{wsURL}); err != nil {
+			a.Logger.Err(err).Msg("failed to render index")
+		}
 	})
 
 	return mux
+}
+
+// sshWebSocketURL returns the URL clients pass to websocat. A configured public host is assumed to be served over TLS.
+func sshWebSocketURL(r *http.Request, publicHost string) string {
+	if publicHost != "" {
+		return "wss://" + publicHost + "/ssh"
+	}
+	scheme := "ws"
+	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" || r.Header.Get("Cf-Visitor") != "" {
+		scheme = "wss"
+	}
+	return scheme + "://" + r.Host + "/ssh"
 }

@@ -55,7 +55,8 @@ npx wrangler deploy       # needs Docker running and a Workers Paid plan
   - `sshtty.go`, `screen.go`, `virtual_screen.go`: adapt an SSH session to a `tcell.Screen`.
 - `api/`: transports.
   - `api.go`: gliderlabs SSH server, session limit (`MaxNumSessions`), host key parsing.
-  - `http.go`: `/ping` and `/healthz` (health checks), `/ssh` (SSH over WebSocket), `/` (connection instructions).
+  - `http.go`: `/ping` and `/healthz` (health checks), `/ssh` (SSH over WebSocket), `/` (connection instructions:
+    HTML from `templates/index.html` for browsers, the plain `ssh` command otherwise).
   - `wsconn.go`: adapts a gorilla/websocket connection to `net.Conn` (binary frames) so `/ssh` can hand it
     to `ssh.Server.HandleConn`.
 - `pkg/config`: YAML + env unmarshalling. `pkg/logger`: zerolog. `pkg/shutdown`: shutdown hooks.
@@ -73,6 +74,7 @@ tags, joined with `__`.
 | `PARTICLES__APP__SIM_CONFIG__HEIGHT`  | `25`    | `app.SimConfig.Height` (≥25) |
 | `PARTICLES__APP__SIM_CONFIG__GRAVITY` | `1`     | `app.SimConfig.Gravity`     |
 | `PARTICLES__API__MAX_NUM_SESSIONS`    | `10`    | `api.Config.MaxNumSessions` |
+| `PARTICLES__API__PUBLIC_HOST`         | (none)  | `api.Config.PublicHost`: hostname in the SSH instructions on `/`; falls back to the request Host |
 | `PARTICLES__API__SSH_HOST_KEY`        | (none)  | `api.Config.SSHHostKey`: PEM private key; if unset, a key is generated at startup |
 
 When you add a config field, also add it to `"vars"` in `cloudflare/wrangler.jsonc` (or to `"secrets"` if it is
