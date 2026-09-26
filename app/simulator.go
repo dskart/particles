@@ -147,7 +147,7 @@ func (s *Simulator) Render(renderer Renderer) {
 func getBlockCharWithColor(pixels [][]bool, colors [][]tcell.Color, x, y, width, height int) (rune, tcell.Color) {
 	// Unicode block characters for 2x2 pixel representation
 	var mask int
-	var color tcell.Color = tcell.ColorWhite // default color
+	color := tcell.ColorWhite // default color
 
 	if y < height && x < width && pixels[y][x] {
 		mask |= 1

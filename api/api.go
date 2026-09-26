@@ -1,8 +1,6 @@
 package api
 
 import (
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"sync/atomic"
@@ -21,7 +19,9 @@ type API struct {
 }
 
 func NewAPI(logger *zerolog.Logger, config Config, app *app.App) (*API, error) {
-	config.Validate()
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid API config: %w", err)
+	}
 	api := &API{Logger: logger, Config: config}
 	server := &ssh.Server{}
 	if config.SSHHostKey != "" {
@@ -42,7 +42,7 @@ func NewAPI(logger *zerolog.Logger, config Config, app *app.App) (*API, error) {
 		sessLogger := logger.With().Str("remoteAddr", s.RemoteAddr().String()).Str("user", s.User()).Logger()
 		if numSessions := numActiveSessions.Load(); numSessions >= int32(config.MaxNumSessions) {
 			sessLogger.Warn().Int("numSessions", config.MaxNumSessions).Msgf("Too many sessions %d/%d", numSessions, config.MaxNumSessions)
-			io.WriteString(s, "Too many sessions")
+			_, _ = io.WriteString(s, "Too many sessions")
 			return
 		}
 
@@ -56,12 +56,12 @@ func NewAPI(logger *zerolog.Logger, config Config, app *app.App) (*API, error) {
 		sessLogger.Info().Int32("numSessions", currentNumSessions).Msg("SSH session started")
 		if err := app.HandleSSHSession(s, &sessLogger, &numActiveSessions, config.MaxNumSessions); err != nil {
 			sessLogger.Err(err).Msg("")
-			io.WriteString(s, err.Error())
-			s.Exit(1)
+			_, _ = io.WriteString(s, err.Error())
+			_ = s.Exit(1)
 			return
 		}
 
-		s.Exit(0)
+		_ = s.Exit(0)
 	})
 
 	api.Handler = h
@@ -69,35 +69,11 @@ func NewAPI(logger *zerolog.Logger, config Config, app *app.App) (*API, error) {
 	return api, nil
 }
 
-// parseSSHHostKey parses an SSH host key from various formats
+// parseSSHHostKey parses a PEM encoded SSH host key (OpenSSH, PKCS#1, PKCS#8 or EC).
 func parseSSHHostKey(hostKey string) (ssh.Signer, error) {
-	// Try to parse as PEM-encoded private key
-	block, _ := pem.Decode([]byte(hostKey))
-	if block != nil {
-		// Parse different key types
-		switch block.Type {
-		case "RSA PRIVATE KEY":
-			privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse RSA private key: %w", err)
-			}
-			return golangSsh.NewSignerFromKey(privateKey)
-		case "PRIVATE KEY":
-			privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse PKCS8 private key: %w", err)
-			}
-			return golangSsh.NewSignerFromKey(privateKey)
-		default:
-			return nil, fmt.Errorf("unsupported key type: %s", block.Type)
-		}
-	}
-
-	// If not PEM, try to parse as raw key bytes
-	privateKey, err := golangSsh.ParseRawPrivateKey([]byte(hostKey))
+	signer, err := golangSsh.ParsePrivateKey([]byte(hostKey))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse raw private key: %w", err)
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
 	}
-
-	return golangSsh.NewSignerFromKey(privateKey)
+	return signer, nil
 }

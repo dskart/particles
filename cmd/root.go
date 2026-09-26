@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"syscall"
 
-	awsCfg "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/dskart/particles/pkg/config"
 	"github.com/dskart/particles/pkg/logger"
 
@@ -51,11 +49,6 @@ var rootCmd = &cobra.Command{
 			cfgOpts = append(cfgOpts, config.WithFilePath(configFilePath))
 		}
 
-		awsConfig, err := awsCfg.LoadDefaultConfig(context.Background())
-		if err != nil {
-			return err
-		}
-		cfgOpts = append(cfgOpts, config.WithSecretManager(secretsmanager.NewFromConfig(awsConfig)))
 		if err := config.UnmarshalConfig(context.Background(), &rootConfig, cfgOpts...); err != nil {
 			return err
 		}

@@ -1,0 +1,5 @@
+.git
+.env
+cloudflare/node_modules
+cloudflare/.wrangler
+particles

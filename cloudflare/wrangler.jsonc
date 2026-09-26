@@ -1,0 +1,51 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "particles",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-09-20",
+	"observability": {
+		"enabled": true,
+	},
+	// Production config for the Go app (cmd.Config). Every PARTICLES__* binding is forwarded to the
+	// container as an env var, so names must match the Go env keys: PARTICLES__<SECTION>__<FIELD>.
+	"vars": {
+		// app.Config
+		"PARTICLES__APP__MAX_SESS_TIME": "5m",
+		"PARTICLES__APP__SIM_CONFIG__WIDTH": "80",
+		"PARTICLES__APP__SIM_CONFIG__HEIGHT": "25",
+		"PARTICLES__APP__SIM_CONFIG__GRAVITY": "1",
+		// api.Config
+		"PARTICLES__API__MAX_NUM_SESSIONS": "10",
+	},
+	"secrets": {
+		// api.Config.SSHHostKey: PEM private key, keeps the SSH fingerprint stable across restarts.
+		// Set with: npx wrangler secret put PARTICLES__API__SSH_HOST_KEY < particles_host
+		"required": ["PARTICLES__API__SSH_HOST_KEY"],
+	},
+	"containers": [
+		{
+			"class_name": "ParticlesContainer",
+			// Built from the Go app's Dockerfile at the repo root.
+			"image": "../Dockerfile",
+			"image_build_context": "..",
+			// The simulation is shared state: every client must land on the same instance.
+			"max_instances": 1,
+			"instance_type": "basic",
+		},
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "ParticlesContainer",
+				"name": "PARTICLES",
+			},
+		],
+	},
+	"migrations": [
+		{
+			"new_sqlite_classes": ["ParticlesContainer"],
+			"tag": "v1",
+		},
+	],
+	"upload_source_maps": true,
+}

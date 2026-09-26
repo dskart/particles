@@ -104,7 +104,7 @@ func (s *SSHTty) Read(b []byte) (int, error) {
 
 func (s *SSHTty) Close() error {
 	if s.started {
-		s.Stop()
+		_ = s.Stop()
 	}
 	return s.session.Close()
 }

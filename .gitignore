@@ -1,6 +1,6 @@
 config.yaml
 particles
 CLAUDE.md
-.hermit
 .tmp
 .env
+node_modules

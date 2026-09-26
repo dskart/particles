@@ -3,15 +3,11 @@ package config
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
 func WithSeperator(seperator string) func(*UnmarshalConfigOptions) {
@@ -24,10 +20,6 @@ func WithPrefix(prefix string) func(*UnmarshalConfigOptions) {
 	return func(options *UnmarshalConfigOptions) {
 		options.prefix = prefix
 	}
-}
-
-type SecretValue struct {
-	Value string `json:"value"`
 }
 
 // UnmarshalConfigFromEnv populates config with values from environment variables. The names of the
@@ -71,30 +63,6 @@ func UnmarshalConfigFromEnv(ctx context.Context, config any, opts ...func(*Unmar
 		if !ok {
 			return nil, nil
 		}
-		if strings.HasPrefix(v, "sm:") {
-			if options.smClient == nil {
-				return nil, fmt.Errorf("smClient is nil")
-			}
-			smClient := options.smClient
-
-			result, err := smClient.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
-				SecretId: aws.String(strings.TrimPrefix(v, "sm:")),
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to get aws secret for %v | %v: %w", key, v, err)
-			}
-			secretString := result.SecretString
-			if secretString == nil {
-				return nil, fmt.Errorf("aws secret for %v | %v was nil", key, v)
-			}
-			var secretValue SecretValue
-			err = json.Unmarshal([]byte(*secretString), &secretValue)
-			if err != nil {
-				return secretString, nil
-			}
-			return &secretValue.Value, nil
-		}
-
 		return &v, nil
 	})
 	return err

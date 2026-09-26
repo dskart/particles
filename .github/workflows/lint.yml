@@ -1,0 +1,25 @@
+name: 🔍 lint
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - uses: jdx/mise-action@v4
+      with:
+        cache: false
+    - name: Install Worker dependencies
+      working-directory: cloudflare
+      run: npm ci
+    - name: Vet Go
+      run: mise run vet:go
+    - name: Lint Go
+      run: mise run lint:go
+    - name: Lint Worker
+      run: mise run lint:worker

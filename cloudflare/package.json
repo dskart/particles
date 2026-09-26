@@ -1,0 +1,22 @@
+{
+	"name": "particles-worker",
+	"description": "Cloudflare Worker fronting the particles SSH simulation container",
+	"dependencies": {
+		"@cloudflare/containers": "^0.3.7"
+	},
+	"devDependencies": {
+		"prettier": "^3.9.9",
+		"typescript": "^7.0.2",
+		"wrangler": "^4.141.0"
+	},
+	"private": true,
+	"scripts": {
+		"cf-typegen": "wrangler types",
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"fmt": "prettier --write .",
+		"fmt:check": "prettier --check .",
+		"lint": "tsc --noEmit"
+	}
+}

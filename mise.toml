@@ -1,0 +1,69 @@
+[tools]
+go = "1.24.2"
+node = "22"
+golangci-lint = "2.14.0"
+
+[env]
+# Load local overrides (PARTICLES__* config, gitignored). Missing file is ignored.
+_.file = ".env"
+
+# Go
+
+[tasks."fmt:go"]
+description = "Format Go code"
+run = "golangci-lint fmt ./..."
+
+[tasks."lint:go"]
+description = "Check Go formatting and lint"
+run = ["golangci-lint fmt --diff ./...", "golangci-lint run ./..."]
+
+[tasks."vet:go"]
+description = "Run go vet"
+run = "go vet ./..."
+
+[tasks."test:go"]
+description = "Run Go tests with the race detector"
+run = "go test -race -count=1 ./..."
+
+[tasks."build:go"]
+description = "Build the Go binary"
+run = "go build -o particles ."
+
+# Cloudflare Worker (run `npm ci` in cloudflare/ first)
+
+[tasks."fmt:worker"]
+description = "Format Worker code"
+dir = "cloudflare"
+run = "npm run fmt"
+
+[tasks."lint:worker"]
+description = "Check Worker formatting and typecheck"
+dir = "cloudflare"
+run = ["npm run fmt:check", "npm run lint"]
+
+[tasks."build:worker"]
+description = "Build the container image and bundle the Worker without deploying (needs Docker)"
+dir = "cloudflare"
+run = "npx wrangler deploy --dry-run"
+
+# All
+
+[tasks.fmt]
+description = "Format everything"
+depends = ["fmt:go", "fmt:worker"]
+
+[tasks.lint]
+description = "Lint everything"
+depends = ["lint:go", "lint:worker"]
+
+[tasks.vet]
+description = "Vet everything"
+depends = ["vet:go"]
+
+[tasks.test]
+description = "Run all tests"
+depends = ["test:go"]
+
+[tasks.build]
+description = "Build everything"
+depends = ["build:go", "build:worker"]

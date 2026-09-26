@@ -1,0 +1,4 @@
+# Copy to .dev.vars for `wrangler dev`. Any PARTICLES__* var here overrides wrangler.jsonc "vars".
+# Generate the key with: ssh-keygen -t ed25519 -f particles_host -N ""
+# In production: npx wrangler secret put PARTICLES__API__SSH_HOST_KEY < particles_host
+PARTICLES__API__SSH_HOST_KEY=""

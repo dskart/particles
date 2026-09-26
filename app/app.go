@@ -47,7 +47,7 @@ func (a *App) HandleSSHSession(s ssh.Session, sessLogger *zerolog.Logger, numAct
 	if err != nil {
 		return fmt.Errorf("could not setup screen: %w", err)
 	}
-	defer closeScreen(screen)
+	defer closeScreen(screen)()
 
 	clientColor, hasColor := GetAvailableColor()
 	if !hasColor {
